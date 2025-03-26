@@ -1,0 +1,77 @@
+CREATE TABLE USERS( 
+    user_id INT AUTO_INCREMENT PRIMARY KEY, 
+    uname VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    age INT NOT NULL,
+    urole ENUM('student','teacher','counsellor')
+);
+
+CREATE TABLE teacher (
+    user_id INT UNIQUE,
+    uname VARCHAR(100) NOT NULL,
+    age INT NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    courses VARCHAR(100) NOT NULL,
+    available BOOLEAN DEFAULT TRUE,
+    rating FLOAT,
+    FOREIGN KEY (user_id) REFERENCES USERS(user_id) ON DELETE CASCADE
+); 
+
+CREATE TABLE counsellor (
+    user_id INT UNIQUE,
+    uname VARCHAR(100) NOT NULL,
+    age INT NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    career_path VARCHAR(100) NOT NULL,
+    available BOOLEAN DEFAULT TRUE,
+    rating FLOAT,
+    FOREIGN KEY (user_id) REFERENCES USERS(user_id) ON DELETE CASCADE
+);
+CREATE TABLE section (
+    student_name VARCHAR(255) NOT NULL,
+    mentor_name VARCHAR(255) NOT NULL,
+    date_of_booking DATE NOT NULL
+);
+
+
+CREATE TABLE students (
+    user_id INT UNIQUE,
+    uname VARCHAR(100) NOT NULL,
+    age INT NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    career_path VARCHAR(100),
+    courses VARCHAR(100),
+    college_id INT,
+    college VARCHAR(100),
+    FOREIGN KEY (user_id) REFERENCES USERS(user_id) ON DELETE CASCADE
+);
+CREATE TABLE Career_path (
+    career_path VARCHAR(100) PRIMARY KEY
+);
+CREATE TABLE Courses (
+    course_name VARCHAR(100) PRIMARY KEY,
+    duration INT NOT NULL,
+    career_path VARCHAR(100),
+    FOREIGN KEY (career_path) REFERENCES Career_path(career_path) ON DELETE CASCADE
+);
+
+DELIMITER //
+
+CREATE TRIGGER after_user_insert
+AFTER INSERT ON USERS
+FOR EACH ROW
+BEGIN
+    IF NEW.urole = 'student' THEN
+        INSERT INTO students (user_id, uname, age, email, career_path, courses, college_id, college)
+        VALUES (NEW.user_id, NEW.uname, NEW.age, NEW.email, NULL, NULL, NULL, NULL);
+    ELSEIF NEW.urole = 'counsellor' THEN
+        INSERT INTO counsellor (user_id, uname, age, email, career_path, available, rating)
+        VALUES (NEW.user_id, NEW.uname, NEW.age, NEW.email, '', TRUE, 0.0);
+    ELSEIF NEW.urole = 'teacher' THEN
+        INSERT INTO teacher (user_id, uname, age, email, courses, available, rating)
+        VALUES (NEW.user_id, NEW.uname, NEW.age, NEW.email, '', TRUE, 0.0);
+    END IF;
+END;
+//
+
+DELIMITER ;
