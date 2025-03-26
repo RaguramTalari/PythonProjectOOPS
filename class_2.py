@@ -147,7 +147,7 @@ class Courses(CareerPath):
             except ValueError:
                 print("Invalid input! Please enter a number.")
         else:
-            print('No careerPaths at the moment')
+            print('No Courses at the moment')
 
 class Session:
     def __init__(self,student,mentor,role):
@@ -250,11 +250,17 @@ def create_user():
             s=Session(uname,a,'counsellor')
             s.book_session()
 
-        courses=Courses.chooseCourse(career_path)
-        b=list_teachers(courses)
-        if b:
-            s1=Session(uname,b,"teacher")
-            s1.book_session()
+        if career_path:
+            courses=Courses.chooseCourse(career_path)
+            b=list_teachers(courses)
+            if b:
+                s1=Session(uname,b,"teacher")
+                s1.book_session()
+            else:
+                courses=None
+        else:
+            career_path=None
+            courses=None
 
         user = Student(uname, age,email,role, college_id, college,career_path, courses,)
 
@@ -271,13 +277,62 @@ def create_user():
         print("Invalid role! Please enter 'student', 'teacher', or 'counsellor'.")
         return
     user.savetodb()
-if __name__ == "__main__":
-    while(1):
-        create_user()
-        conn=gt()
-        cursor = conn.cursor()
-        cursor.close()
-        conn.close()
+
+
+def update_user_details():
+    uname = input("Enter the username to update: ")
+    conn = gt()
+    cursor = conn.cursor()
+
+    # Check if user exists
+    cursor.execute("SELECT urole FROM USERS WHERE uname = %s", (uname,))
+    user = cursor.fetchone()
+
+    if not user:
+        print("User not found!")
+        return
+
+    role = user[0]
+    new_email = input("Enter new Email (press Enter to skip): ") or None
+    new_age = input("Enter new Age (press Enter to skip): ") or None
+
+    if new_age:
+        new_age = int(new_age)
+
+
+    cursor.execute("UPDATE USERS SET email = COALESCE(%s, email), age = COALESCE(%s, age) WHERE uname = %s",
+                   (new_email, new_age, uname))
+
+
+    if role == "student":
+        new_careerpath = input("Enter new Career Path (press Enter to skip): ") or None
+        new_courses = input("Enter new Courses (press Enter to skip): ") or None
+        cursor.execute(
+            "UPDATE students SET career_path = COALESCE(%s, career_path), courses = COALESCE(%s, courses) WHERE uname = %s",
+            (new_careerpath, new_courses, uname))
+
+    elif role == "teacher":
+        new_courses = input("Enter new Courses (press Enter to skip): ") or None
+        new_availability = input("Update Availability? (yes/no, press Enter to skip): ").strip().lower()
+        if new_availability == "yes":
+            available = input("Enter Availability (true/false): ").strip().lower() == "true"
+            cursor.execute("UPDATE teacher SET courses = COALESCE(%s, courses), available = %s WHERE uname = %s",
+                           (new_courses, available, uname))
+
+    elif role == "counsellor":
+        new_careerpath = input("Enter new Career Path (press Enter to skip): ") or None
+        new_availability = input("Update Availability? (yes/no, press Enter to skip): ").strip().lower()
+        if new_availability == "yes":
+            available = input("Enter Availability (true/false): ").strip().lower() == "true"
+            cursor.execute(
+                "UPDATE counsellor SET career_path = COALESCE(%s, career_path), available = %s WHERE uname = %s",
+                (new_careerpath, available, uname))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    print(f"User '{uname}' details updated successfully!")
 
 
 
